@@ -1,9 +1,19 @@
+from datetime import date, datetime
 from flask import Flask, render_template, request, url_for, redirect
+import numpy as np
 import pandas as pd
+import urllib.request
+import bs4 as bs
+import pickle
+
+# load the nlp model and tfidf vectorizer from disk
+filename = 'nlp_model.pkl'
+clf = pickle.load(open(filename, 'rb'))
+vectorizer = pickle.load(open('tranform.pkl','rb'))
 
 def get_suggestions():
-    data = pd.read_csv('IMDb movies.csv')
-    return list(data['original_title'].str.capitalize())
+    data = pd.read_csv('IMDb_movies.csv')
+    return list(data['movie_title'].str.capitalize())
 
 app=Flask(__name__)
 
@@ -13,6 +23,19 @@ def home():
     suggestions=get_suggestions()
     return render_template('home.html',suggestions=suggestions)
 
+# converting list of string to list (eg. "["abc","def"]" to ["abc","def"])
+def convert_to_list(my_list):
+    my_list = my_list.split('","')
+    my_list[0] = my_list[0].replace('["','')
+    my_list[-1] = my_list[-1].replace('"]','')
+    return my_list
+
+# convert list of numbers to list (eg. "[1,2,3]" to [1,2,3])
+def convert_to_list_num(my_list):
+    my_list = my_list.split(',')
+    my_list[0] = my_list[0].replace("[","")
+    my_list[-1] = my_list[-1].replace("]","")
+    return my_list
 
 @app.route("/recommend",methods=["POST"])
 def recommend():
