@@ -1,21 +1,30 @@
-from datetime import date, datetime
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, render_template, request
 import numpy as np
 import pandas as pd
-import urllib.request
 import bs4 as bs
 import pickle
 
 # load the nlp model and tfidf vectorizer from disk
 data = pd.DataFrame(pickle.load(open('data.pkl','rb')))
-movies = pd.read_csv('./archive/IMDB Movies.csv')
+movies = pd.read_csv('./archive/IMDB Movies.csv', dtype=str)
+
+app=Flask(__name__)
+app.config["CACHE_TYPE"] = "null"
 
 def get_suggestions():
     data = pd.read_csv('./archive/IMDB Movies.csv')
     return list(data['title'].str.title())
 
-app=Flask(__name__)
-app.config["CACHE_TYPE"] = "null"
+def get_recommended_movies(title):
+    movie_id_list = data[movies.loc[movies['title'] == title].iloc[0]['imdb_title_id']]
+
+    rec_id = [(movies.loc[movies['imdb_title_id'] == row]['imdb_title_id']).item() for index, row in movie_id_list.iteritems()]
+    rec_title = [(movies.loc[movies['imdb_title_id'] == row]['title']).item() for index, row in movie_id_list.iteritems()]
+    rec_org_title = [(movies.loc[movies['imdb_title_id'] == row]['original_title']).item() for index, row in movie_id_list.iteritems()]
+    rec_year = [(movies.loc[movies['imdb_title_id'] == row]['year']).item() for index, row in movie_id_list.iteritems()]
+    rec_avg_vote = [(movies.loc[movies['imdb_title_id'] == row]['avg_vote']).item() for index, row in movie_id_list.iteritems()]
+
+    return rec_id, rec_title, rec_org_title, rec_year, rec_avg_vote
 
 @app.route("/")
 @app.route("/home")
@@ -23,38 +32,15 @@ def home():
     suggestions=get_suggestions()
     return render_template('home.html',suggestions=suggestions)
 
-# converting list of string to list (eg. "["abc","def"]" to ["abc","def"])
-def convert_to_list(my_list):
-    my_list = my_list.split('","')
-    my_list[0] = my_list[0].replace('["','')
-    my_list[-1] = my_list[-1].replace('"]','')
-    return my_list
-
-# convert list of numbers to list (eg. "[1,2,3]" to [1,2,3])
-def convert_to_list_num(my_list):
-    my_list = my_list.split(',')
-    my_list[0] = my_list[0].replace("[","")
-    my_list[-1] = my_list[-1].replace("]","")
-    return my_list
-
-def get_recommended_movies(title):
-    movie_list = data[movies.loc[movies['title'] == title]['imdb_title_id']]
-    rec_id = [(movies.loc[movies['imdb_title_id'] == row.item()]['imdb_title_id']).item() for index, row in movie_list.iterrows()]
-    rec_title = [(movies.loc[movies['imdb_title_id'] == row.item()]['title']).item() for index, row in movie_list.iterrows()]
-    rec_org_title = [(movies.loc[movies['imdb_title_id'] == row.item()]['original_title']).item() for index, row in movie_list.iterrows()]
-    rec_year = [(movies.loc[movies['imdb_title_id'] == row.item()]['year']).item() for index, row in movie_list.iterrows()]
-    rec_avg_vote = [(movies.loc[movies['imdb_title_id'] == row.item()]['avg_vote']).item() for index, row in movie_list.iterrows()]
-
-    return rec_id, rec_title, rec_org_title, rec_year, rec_avg_vote
-
 @app.route("/recommend",methods=["POST"])
 def recommend():
     # getting data from AJAX request
     title = request.form['title']
-    overview = (movies.loc[movies['title'] == title]['description']).item()
-    release_date = (movies.loc[movies['title'] == title]['date_published']).item()
-    runtime = (movies.loc[movies['title'] == title]['duration']).item()
-    genres = (movies.loc[movies['title'] == title]['genre']).item()
+    overview = (movies.loc[movies['title'] == title].iloc[0]['description'])
+    vote_average = (movies.loc[movies['title'] == title].iloc[0]['avg_vote'])
+    release_date = (movies.loc[movies['title'] == title].iloc[0]['date_published'])
+    runtime = (movies.loc[movies['title'] == title].iloc[0]['duration'])
+    genres = (movies.loc[movies['title'] == title].iloc[0]['genre'])
 
     recom_movies = get_recommended_movies(title)
 
@@ -148,9 +134,7 @@ def recommend():
     # return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
     #    vote_count=vote_count,release_date=release_date,movie_rel_date=movie_rel_date,curr_date=curr_date,runtime=runtime,status=status,genres=genres,movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details)
 
-    return render_template('recommend.html',title=title,overview=overview,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards)
-
-
+    return render_template('recommend.html',title=title,overview=overview,vote_average=vote_average,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards)
 
 if __name__ == '__main__':
     app.run(debug=True)
