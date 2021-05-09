@@ -20,8 +20,8 @@ $(function() {
   })
 
   $('.movie-button').on('click',function(){
+    var my_api_key = '69270bf301979a5401e919eb05fa9a53';
     var title = $('.movie').val();
-    
     if (title=="") {
       $('.results').css('display','none');
       $('.fail').css('display','block');
@@ -32,27 +32,7 @@ $(function() {
     }
 
     else{
-      $.ajax({
-        type:'POST',
-        data:{
-          'title': title
-        },
-        url:"/recommend",
-        dataType: 'html',
-        complete: function(){
-          $("#loader").delay(500).fadeOut();
-        },
-        success: function(response) {
-          $('.results').html(response);
-          $('#autoComplete').val('');
-          $('.footer').css('position','absolute');
-          if ($('.movie-content')) {
-            $('.movie-content').after('<div class="gototop"><i title="Go to Top" class="fa fa-arrow-up"></i></div>');
-          }
-          $(window).scrollTop(0);
-        }
-      });
-      //load_details(my_api_key,title);
+      load_details(my_api_key,title);
     }
   });
 });
@@ -60,33 +40,14 @@ $(function() {
 // will be invoked when clicking on the recommended movie cards
 function recommendcard(e){
   $("#loader").fadeIn();
-  var title = e.getAttribute('title');
-  $.ajax({
-    type:'POST',
-    data:{
-      'title': title
-    },
-    url:"/recommend",
-    dataType: 'html',
-    complete: function(){
-      $("#loader").delay(500).fadeOut();
-    },
-    success: function(response) {
-      $('.results').html(response);
-      $('#autoComplete').val('');
-      $('.footer').css('position','absolute');
-      if ($('.movie-content')) {
-        $('.movie-content').after('<div class="gototop"><i title="Go to Top" class="fa fa-arrow-up"></i></div>');
-      }
-      $(window).scrollTop(0);
-    }
-  });
-  //load_details(my_api_key,title);
+  var my_api_key = '69270bf301979a5401e919eb05fa9a53';
+  var title = e.getAttribute('title'); 
+  load_details(my_api_key,title);
 }
 
 
 // get the details of the movie from the API (based on the name of the movie)
-/*function load_details(my_api_key,title){
+function load_details(my_api_key,title){
   $.ajax({
     type: 'GET',
     url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+title,
@@ -198,10 +159,10 @@ function get_movie_details(movie_id,my_api_key,movie_title,movie_title_org) {
       $("#loader").delay(500).fadeOut();
     },
   });
-}*/
+}
 
 // passing all the details to python's flask for displaying and scraping the movie reviews using imdb id
-/*function show_details(movie_details,movie_title,my_api_key,movie_id,movie_title_org){
+function show_details(movie_details,movie_title,my_api_key,movie_id,movie_title_org){
   var imdb_id = movie_details.imdb_id;
   var poster;
   if(movie_details.poster_path){
@@ -334,14 +295,16 @@ function get_movie_cast(movie_id,my_api_key){
             top_cast = [0,1,2,3,4];
           }
           for(var my_cast in top_cast){
-            cast_ids.push(my_movie.cast[my_cast].id)
-            cast_names.push(my_movie.cast[my_cast].name);
-            cast_chars.push(my_movie.cast[my_cast].character);
-            if(my_movie.cast[my_cast].profile_path){
-              cast_profiles.push("https://image.tmdb.org/t/p/original"+my_movie.cast[my_cast].profile_path);
-            }
-            else {
-              cast_profiles.push("static/default.jpg");
+            if(my_movie.cast[my_cast]) {
+              cast_ids.push(my_movie.cast[my_cast].id)
+              cast_names.push(my_movie.cast[my_cast].name);
+              cast_chars.push(my_movie.cast[my_cast].character);
+              if(my_movie.cast[my_cast].profile_path){
+                cast_profiles.push("https://image.tmdb.org/t/p/original"+my_movie.cast[my_cast].profile_path);
+              }
+              else {
+                cast_profiles.push("static/default.jpg");
+              }
             }
           }
         }
@@ -387,4 +350,4 @@ function get_movie_cast(movie_id,my_api_key){
       }
     });
     return {rec_movies:rec_movies,rec_movies_org:rec_movies_org,rec_posters:rec_posters,rec_year:rec_year,rec_vote:rec_vote};
-  }*/
+  }

@@ -10,6 +10,20 @@ movies = pd.read_csv('./archive/IMDB Movies.csv', dtype=str)
 app=Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
 
+# converting list of string to list (eg. "["abc","def"]" to ["abc","def"])
+def convert_to_list(my_list):
+    my_list = my_list.split('","')
+    my_list[0] = my_list[0].replace('["','')
+    my_list[-1] = my_list[-1].replace('"]','')
+    return my_list
+
+# convert list of numbers to list (eg. "[1,2,3]" to [1,2,3])
+def convert_to_list_num(my_list):
+    my_list = my_list.split(',')
+    my_list[0] = my_list[0].replace("[","")
+    my_list[-1] = my_list[-1].replace("]","")
+    return my_list
+
 def get_suggestions():
     #data = pd.read_csv('./archive/IMDB Movies.csv')
     return [(movies.loc[movies['imdb_title_id'] == row]['title']).item() for index, row in data.iloc[0].iteritems()]
@@ -49,12 +63,28 @@ def home():
 def recommend():
     # getting data from AJAX request
     title = request.form['title']
+    cast_ids = request.form['cast_ids']
+    cast_names = request.form['cast_names']
+    cast_chars = request.form['cast_chars']
+    cast_bdays = request.form['cast_bdays']
+    cast_bios = request.form['cast_bios']
+    cast_places = request.form['cast_places']
+    cast_profiles = request.form['cast_profiles']
     poster = get_poster(movies.loc[movies['title'] == title].iloc[0]['imdb_title_id'])
     overview = (movies.loc[movies['title'] == title].iloc[0]['description'])
     vote_average = (movies.loc[movies['title'] == title].iloc[0]['avg_vote'])
     release_date = (movies.loc[movies['title'] == title].iloc[0]['date_published'])
     runtime = (movies.loc[movies['title'] == title].iloc[0]['duration'])
     genres = (movies.loc[movies['title'] == title].iloc[0]['genre'])
+
+    cast_names = convert_to_list(cast_names)
+    cast_chars = convert_to_list(cast_chars)
+    cast_profiles = convert_to_list(cast_profiles)
+    cast_bdays = convert_to_list(cast_bdays)
+    cast_bios = convert_to_list(cast_bios)
+    cast_places = convert_to_list(cast_places)
+
+    cast_ids = convert_to_list_num(cast_ids)
 
     recom_movies = get_recommended_movies(title)
 
@@ -104,18 +134,18 @@ def recommend():
     rec_year = convert_to_list_num(rec_year)'''
     
     # rendering the string to python string
-    '''for i in range(len(cast_bios)):
+    for i in range(len(cast_bios)):
         cast_bios[i] = cast_bios[i].replace(r'\n', '\n').replace(r'\"','\"')
 
     for i in range(len(cast_chars)):
         cast_chars[i] = cast_chars[i].replace(r'\n', '\n').replace(r'\"','\"') 
     
     # combining multiple lists as a dictionary which can be passed to the html file so that it can be processed easily and the order of information will be preserved
-    movie_cards = {rec_posters[i]: [rec_movies[i],rec_movies_org[i],rec_vote[i],rec_year[i]] for i in range(len(rec_posters))}
+    #movie_cards = {rec_posters[i]: [rec_movies[i],rec_movies_org[i],rec_vote[i],rec_year[i]] for i in range(len(rec_posters))}'''
 
     casts = {cast_names[i]:[cast_ids[i], cast_chars[i], cast_profiles[i]] for i in range(len(cast_profiles))}
 
-    cast_details = {cast_names[i]:[cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] for i in range(len(cast_places))}'''
+    cast_details = {cast_names[i]:[cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] for i in range(len(cast_places))}
 
     # web scraping to get user reviews from IMDB site
     # sauce = urllib.request.urlopen('https://www.imdb.com/title/{}/reviews?ref_=tt_ov_rt'.format(imdb_id)).read()
@@ -147,7 +177,7 @@ def recommend():
     # passing all the data to the html file
     # return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
     #    vote_count=vote_count,release_date=release_date,movie_rel_date=movie_rel_date,curr_date=curr_date,runtime=runtime,status=status,genres=genres,movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details)
-    return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards)
+    return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards,casts=casts,cast_details=cast_details)
 
 if __name__ == '__main__':
     app.run(debug=True)
