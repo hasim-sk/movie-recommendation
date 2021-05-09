@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request
-import numpy as np
 import pandas as pd
-import bs4 as bs
 import pickle
+import requests
 
 # load the nlp model and tfidf vectorizer from disk
 data = pd.DataFrame(pickle.load(open('data.pkl','rb')))
@@ -12,8 +11,21 @@ app=Flask(__name__)
 app.config["CACHE_TYPE"] = "null"
 
 def get_suggestions():
-    data = pd.read_csv('./archive/IMDB Movies.csv')
-    return list(data['title'].str.title())
+    #data = pd.read_csv('./archive/IMDB Movies.csv')
+    return [(movies.loc[movies['imdb_title_id'] == row]['title']).item() for index, row in data.iloc[0].iteritems()]
+
+def get_poster(movie_id):
+    API_KEY = '69270bf301979a5401e919eb05fa9a53'
+    url = 'https://api.themoviedb.org/3/movie/' + movie_id + '?api_key=' + API_KEY
+    response = requests.get(url).json()
+    if 'success' not in response:
+        if response['poster_path']:
+            poster = 'https://image.tmdb.org/t/p/original' + response['poster_path']
+        else:
+            poster = 'static/default.jpg'
+    else:
+        poster = 'static/default.jpg'
+    return poster
 
 def get_recommended_movies(title):
     movie_id_list = data[movies.loc[movies['title'] == title].iloc[0]['imdb_title_id']]
@@ -23,8 +35,9 @@ def get_recommended_movies(title):
     rec_org_title = [(movies.loc[movies['imdb_title_id'] == row]['original_title']).item() for index, row in movie_id_list.iteritems()]
     rec_year = [(movies.loc[movies['imdb_title_id'] == row]['year']).item() for index, row in movie_id_list.iteritems()]
     rec_avg_vote = [(movies.loc[movies['imdb_title_id'] == row]['avg_vote']).item() for index, row in movie_id_list.iteritems()]
+    rec_poster = [get_poster(row) for index, row in movie_id_list.iteritems()]
 
-    return rec_id, rec_title, rec_org_title, rec_year, rec_avg_vote
+    return rec_poster, rec_title, rec_org_title, rec_year, rec_avg_vote
 
 @app.route("/")
 @app.route("/home")
@@ -36,6 +49,7 @@ def home():
 def recommend():
     # getting data from AJAX request
     title = request.form['title']
+    poster = get_poster(movies.loc[movies['title'] == title].iloc[0]['imdb_title_id'])
     overview = (movies.loc[movies['title'] == title].iloc[0]['description'])
     vote_average = (movies.loc[movies['title'] == title].iloc[0]['avg_vote'])
     release_date = (movies.loc[movies['title'] == title].iloc[0]['date_published'])
@@ -133,8 +147,7 @@ def recommend():
     # passing all the data to the html file
     # return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
     #    vote_count=vote_count,release_date=release_date,movie_rel_date=movie_rel_date,curr_date=curr_date,runtime=runtime,status=status,genres=genres,movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details)
-
-    return render_template('recommend.html',title=title,overview=overview,vote_average=vote_average,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards)
+    return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,release_date=release_date,runtime=runtime,genres=genres,movie_cards=movie_cards)
 
 if __name__ == '__main__':
     app.run(debug=True)
